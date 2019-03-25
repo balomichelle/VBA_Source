@@ -1,0 +1,116 @@
+Option Explicit
+Option Base 1
+
+Sub GetZScores(InputRange As Range, ZData() As Double)
+Dim NCols As Integer, NRows As Integer
+Dim Means() As Double, SDS() As Double
+
+Dim i As Integer, j As Integer
+
+NRows = InputRange.Rows.Count
+NCols = InputRange.Columns.Count
+ReDim Means(NCols)
+ReDim SDS(NCols)
+
+For i = 1 To NCols
+    Means(i) = Application.WorksheetFunction.Average(InputRange.Offset(0, i - 1).Resize(NRows, 1))
+    SDS(i) = Application.WorksheetFunction.StDevP(InputRange.Offset(0, i - 1).Resize(NRows, 1))
+Next i
+
+For i = 1 To NCols
+    For j = 1 To NRows
+        ZData(j, i) = (InputRange(j, i) - Means(i)) / SDS(i)
+    Next j
+Next i
+
+End Sub
+
+Sub GetFactorCoeffs(E() As Double, V() As Double, m As Integer, FactorCoeffs() As Double)
+Dim InverseSqrtEigenValMatrix() As Double
+Dim i As Integer, j As Integer
+Dim TempMatrix As Variant
+
+ReDim InverseSqrtEigenValMatrix(m, m)
+
+For i = 1 To m
+    InverseSqrtEigenValMatrix(i, i) = 1 / Sqr(E(i))
+Next i
+
+TempMatrix = Application.WorksheetFunction.MMult(V, InverseSqrtEigenValMatrix)
+
+For i = 1 To m
+    For j = 1 To m
+        FactorCoeffs(i, j) = TempMatrix(i, j)
+    Next j
+Next i
+End Sub
+Sub GetBartlett(Det, EN, EM, CHISQ, NDF)
+NDF = (EM * EM - EM) / 2
+CHISQ = -((EN - 1) - ((1 / 6) * (2 * EM + 5))) * Log(Det)
+
+End Sub
+
+Sub GetFactorPatterns(E() As Double, V() As Double, m As Integer, FactorPattern() As Double)
+Dim SqrtEigenValMatrix() As Double
+Dim i As Integer, j As Integer
+Dim TempMatrix As Variant
+
+ReDim SqrtEigenValMatrix(m, m)
+
+For i = 1 To m
+    SqrtEigenValMatrix(i, i) = Sqr(E(i))
+Next i
+
+TempMatrix = Application.WorksheetFunction.MMult(V, SqrtEigenValMatrix)
+
+For i = 1 To m
+    For j = 1 To m
+        FactorPattern(i, j) = TempMatrix(i, j)
+    Next j
+Next i
+
+End Sub
+
+Sub Coeff(Rinverse() As Double, FactorPattern() As Double, VarLabels() As String, _
+    ObsCount As Integer, InputRange As Range, m As Integer, n As Integer, _
+    RotatedCoeffs() As Double)
+    
+Dim i As Integer, j As Integer, k As Integer, L As Integer
+
+Dim A() As Double    '   'Rotated factor loadings
+'Dim C() As Double
+
+ReDim A(n, m)
+For i = 1 To m
+    For j = 1 To n
+        A(j, i) = FactorPattern(i, j)
+    Next j
+Next i
+
+'ReDim C(n, m)
+ReDim RotatedCoeffs(n, m)
+
+For j = 1 To n
+    For k = 1 To m
+        RotatedCoeffs(j, k) = 0
+        For L = 1 To m
+            RotatedCoeffs(j, k) = RotatedCoeffs(j, k) + A(j, L) * Rinverse(L, k)
+        Next L
+    Next k
+Next j
+Sheets.Add
+ActiveSheet.Name = "Rotated Factor Coefficients"
+
+For i = 1 To m
+    ActiveSheet.Cells(i + 1, 1) = VarLabels(i)
+Next i
+
+For i = 1 To n
+    ActiveSheet.Cells(1, i + 1) = "Factor " & i
+    For j = 1 To m
+        ActiveSheet.Cells(j + 1, i + 1) = RotatedCoeffs(i, j)
+    Next j
+Next i
+
+End Sub
+
