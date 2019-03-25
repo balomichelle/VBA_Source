@@ -1,0 +1,110 @@
+Option Explicit
+Option Base 1
+
+Sub ExtractComponents(R, m, E, V)
+
+Dim A() As Double
+Dim x() As Double
+Dim y() As Double
+Dim Z() As Double
+Dim test As Double
+Dim sum1 As Double, sum2 As Double
+
+Dim L As Integer, i As Integer, j As Integer, it As Integer, k As Integer
+
+ReDim A(m, m)
+ReDim x(m)
+ReDim y(m)
+ReDim Z(m)
+
+For i = 1 To m
+    For j = 1 To m
+        A(i, j) = R(i, j)
+    Next j
+Next i
+
+L = 1
+
+test = 0.00001
+
+1:
+it = 0
+
+For j = 1 To m
+    y(j) = 1
+Next j
+
+3:
+it = it + 1
+
+For j = 1 To m
+    x(j) = 0
+    For k = 1 To m
+        x(j) = x(j) + A(j, k) * y(k)
+    Next k
+4:
+Next j
+
+E(L) = x(1)
+sum1 = 0
+For j = 1 To m
+    V(j, L) = x(j) / x(1)       'e(L)
+    sum1 = sum1 + Abs(y(j) - V(j, L))
+    y(j) = V(j, L)
+Next j
+
+If it - 50 <> 0 Then
+    GoTo 9
+Else
+    GoTo 6
+End If
+
+6:
+If sum2 - sum1 <= 0 Then
+    GoTo 7
+Else
+    GoTo 9
+End If
+7:
+    MsgBox "Root is not converging. Ending extraction process."
+    End
+9:
+sum2 = sum1
+If sum1 - test <= 0 Then
+    GoTo 10
+Else
+    GoTo 3
+End If
+
+10:
+sum1 = 0
+
+For j = 1 To m
+    sum1 = sum1 + V(j, L) * V(j, L)
+Next j
+
+sum1 = Sqr(sum1)
+    
+For j = 1 To m
+    V(j, L) = V(j, L) / sum1
+Next j
+
+For j = 1 To m
+    For k = 1 To m
+        A(j, k) = A(j, k) - V(j, L) * V(k, L) * E(L)
+    Next k
+Next j
+
+If m - L <= 0 Then
+    GoTo 15
+Else
+    GoTo 14
+End If
+14:
+L = L + 1
+GoTo 1
+15:
+End Sub
+
+
+
