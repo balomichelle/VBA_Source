@@ -1,0 +1,48 @@
+Option Explicit
+Option Base 1
+
+Sub Fscore(C() As Double, ObsCount As Integer, InputRange As Range, n As Integer, _
+    m As Integer, RecordIDs() As String, HaveIDs As Boolean)
+
+Dim i As Integer, j As Integer, k As Integer
+Dim W() As Double, y() As Double, Z() As Double, V() As Double
+
+ReDim W(m)
+ReDim y(m)
+ReDim Z(n)
+ReDim V(ObsCount, n)
+For i = 1 To m
+    W(i) = Application.WorksheetFunction.Average(InputRange.Offset(0, i - 1).Resize(ObsCount, 1))
+    y(i) = Application.WorksheetFunction.StDevP(InputRange.Offset(0, i - 1).Resize(ObsCount, 1))
+Next i
+
+For j = 1 To n
+    For k = 1 To m
+        C(j, k) = C(j, k) / y(k)
+    Next k
+Next j
+
+For j = 1 To n
+    For k = 1 To m
+        Z(j) = Z(j) + C(j, k) * W(k)
+    Next k
+Next j
+Sheets.Add
+ActiveSheet.Name = "Rotated Factor Scores"
+For i = 1 To ObsCount
+    For j = 1 To n
+        For k = 1 To m
+            V(i, j) = V(i, j) + C(j, k) * InputRange.Cells(i, k)
+        Next k
+    Next j
+    For j = 1 To n
+        ActiveSheet.Cells(1, j + 1) = "Factor " & j
+        V(i, j) = V(i, j) - Z(j)
+        If HaveIDs Then
+            ActiveSheet.Cells(i + 1, 1) = RecordIDs(i)
+        End If
+        ActiveSheet.Cells(i + 1, j + 1) = V(i, j)
+    Next j
+Next i
+
+End Sub
