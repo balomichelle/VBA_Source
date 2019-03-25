@@ -1,0 +1,226 @@
+Option Explicit
+Option Base 1
+
+Sub WriteRMatrix(RowNum As Integer, VarLabels() As String, R() As Double, m As Integer)
+Dim i As Integer, j As Integer
+With ActiveSheet
+    .Cells(RowNum, 1) = "R Matrix"
+    .Cells(RowNum, 1).Font.Bold = True
+    RowNum = RowNum + 1
+    For i = 1 To m
+        .Cells(RowNum, i + 1) = VarLabels(i)
+    Next i
+    RowNum = RowNum + 1
+    For i = 1 To m
+        .Cells(RowNum, 1) = VarLabels(i)
+        For j = 1 To m
+            .Cells(RowNum, j + 1) = R(i, j)
+        Next j
+        RowNum = RowNum + 1
+    Next i
+End With
+End Sub
+
+Sub WriteRInverse(RowNum As Integer, Rinverse() As Double, VarLabels() As String, _
+    R() As Double, SMCs() As Double, m As Integer)
+    
+Dim TempInverse As Variant
+Dim i As Integer, j As Integer
+    
+RowNum = RowNum + 1
+
+With ActiveSheet
+
+.Cells(RowNum, 1) = "R Inverse"
+    .Cells(RowNum, 1).Font.Bold = True
+    
+    RowNum = RowNum + 1
+    For i = 1 To m
+        .Cells(RowNum, i + 1) = VarLabels(i)
+    Next i
+    
+    TempInverse = Application.WorksheetFunction.MInverse(R)
+    ReDim Rinverse(m, m)
+    For i = 1 To m
+        For j = 1 To m
+            Rinverse(i, j) = TempInverse(i, j)
+        Next j
+    Next i
+    
+    RowNum = RowNum + 1
+    For i = 1 To m
+        .Cells(RowNum, 1) = VarLabels(i)
+        For j = 1 To m
+            .Cells(RowNum, j + 1) = Rinverse(i, j)
+            If i = j Then
+                SMCs(i) = 1 - (1 / Rinverse(i, j))
+            End If
+        Next j
+        RowNum = RowNum + 1
+    Next i
+
+End With
+End Sub
+
+Sub WriteBartlett(RowNum As Integer, Det As Double, CHISQ As Double, NDF As Integer)
+    
+RowNum = RowNum + 1
+
+With ActiveSheet
+
+    .Cells(RowNum, 1) = "Determinant of R matrix = " & Round(Det, 6)
+    
+    RowNum = RowNum + 2
+    
+    .Cells(RowNum, 1) = "For sphericity test, Chi-square = " & Round(CHISQ, 3) & ", and df = " & NDF
+    RowNum = RowNum + 1
+    .Cells(RowNum, 1) = "P(Chi-square) =  " & Round(Application.WorksheetFunction.ChiDist(CHISQ, NDF), 3)
+End With
+
+End Sub
+
+Sub WriteEigens(RowNum As Integer, m As Integer, E() As Double, VarLabels() As String, V() As Double)
+Dim i As Integer, j As Integer, k As Integer
+
+RowNum = RowNum + 2
+
+With ActiveSheet
+
+.Cells(RowNum, 1) = "Eigenvalues"
+    .Cells(RowNum, 1).Font.Bold = True
+    RowNum = RowNum + 1
+    For j = 1 To m
+        .Cells(RowNum, j + 1) = "Factor " & j
+    Next j
+        
+    RowNum = RowNum + 1
+    For i = 1 To m
+        .Cells(RowNum, i + 1) = E(i)
+    Next i
+    
+    RowNum = RowNum + 2
+    .Cells(RowNum, 1) = "Eigenvectors"
+    .Cells(RowNum, 1).Font.Bold = True
+    RowNum = RowNum + 1
+    For j = 1 To m
+        .Cells(RowNum, j + 1) = "Factor " & j
+    Next j
+    RowNum = RowNum + 1
+    For j = 1 To m
+        .Cells(RowNum, 1) = VarLabels(j)
+        For k = 1 To m
+            .Cells(RowNum, k + 1) = V(j, k)
+        Next k
+    RowNum = RowNum + 1
+    Next j
+End With
+End Sub
+
+Sub WriteUnrotatedCoeffs(RowNum As Integer, VarLabels() As String, _
+    FactorCoeffs() As Double, m As Integer)
+    
+Dim j As Integer, k As Integer
+
+RowNum = RowNum + 1
+
+With ActiveSheet
+
+    .Cells(RowNum, 1) = "Factor Score Coefficients"
+    .Cells(RowNum, 1).Font.Bold = True
+    RowNum = RowNum + 1
+    For j = 1 To m
+        .Cells(RowNum, j + 1) = "Factor " & j
+    Next j
+    RowNum = RowNum + 1
+    For j = 1 To m
+        .Cells(RowNum, 1) = VarLabels(j)
+        For k = 1 To m
+            .Cells(RowNum, k + 1) = FactorCoeffs(j, k)
+        Next k
+     RowNum = RowNum + 1
+    Next j
+
+End With
+
+End Sub
+
+Sub WriteFactorStructure(RowNum As Integer, m As Integer, VarLabels() As String, _
+    FactorPattern() As Double)
+
+Dim j As Integer, k As Integer
+
+RowNum = RowNum + 1
+
+With ActiveSheet
+
+    .Cells(RowNum, 1) = "Factor Structure"
+    .Cells(RowNum, 1).Font.Bold = True
+    RowNum = RowNum + 1
+    For j = 1 To m
+        .Cells(RowNum, j + 1) = "Factor " & j
+    Next j
+    RowNum = RowNum + 1
+    For j = 1 To m
+        .Cells(RowNum, 1) = VarLabels(j)
+        For k = 1 To m
+            .Cells(RowNum, k + 1) = FactorPattern(j, k)
+        Next k
+     RowNum = RowNum + 1
+    Next j
+
+End With
+End Sub
+
+Sub WriteCommunalities(RowNum As Integer, VarLabels() As String, _
+    FactorPattern() As Double, SMCs() As Double, m As Integer)
+Dim j As Integer, k As Integer
+
+RowNum = RowNum + 1
+
+With ActiveSheet
+    
+    .Cells(RowNum, 1) = "Variable"
+    .Cells(RowNum, 2) = "Communalities"
+    .Cells(RowNum, m + 2) = "SMCs"
+    .Range(.Cells(RowNum, 1), .Cells(RowNum, m + 2)).Font.Bold = True
+    RowNum = RowNum + 1
+    For j = 1 To m
+        .Cells(RowNum, 1) = VarLabels(j)
+        For k = 1 To m
+            .Cells(RowNum, k + 1) = FactorPattern(j, k) ^ 2
+            .Cells(RowNum, k + 1).Style = "Percent"
+        Next k
+        .Cells(RowNum, m + 2) = SMCs(j)
+        RowNum = RowNum + 1
+    Next j
+    
+End With
+End Sub
+
+Sub WriteFactorScores(RowNum As Integer, InputRange As Range, ZScoreMatrix() As Double, _
+    FactorCoeffs() As Double, ObsCount As Integer, m As Integer)
+
+Dim FactorScoreMatrix As Variant
+Dim j As Integer, k As Integer
+
+RowNum = RowNum + 1
+
+With ActiveSheet
+
+        GetZScores InputRange, ZScoreMatrix
+        FactorScoreMatrix = Application.WorksheetFunction.MMult(ZScoreMatrix, FactorCoeffs)
+        .Cells(RowNum, 1) = "Factor Scores"
+        .Cells(RowNum, 1).Font.Bold = True
+        RowNum = RowNum + 1
+        For j = 1 To m
+            .Cells(RowNum, j + 1) = "Factor " & j
+        Next j
+        RowNum = RowNum + 1
+        For j = 1 To ObsCount
+            For k = 1 To m
+                .Cells(RowNum, k + 1) = FactorScoreMatrix(j, k)
+            Next k
+        RowNum = RowNum + 1
+        Next j
+End With
+End Sub
