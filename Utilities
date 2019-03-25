@@ -1,0 +1,270 @@
+Option Explicit
+Option Base 1
+
+Sub CheckRMatrix(R As Range, m As Integer)
+Dim i As Integer, j As Integer
+
+For i = 1 To m
+    If R(i, i) <> 1# Then
+        MsgBox "The main diagonal in your correlation matrix contains at least " _
+            & "one value that does not equal 1.0. The analysis can't proceed " _
+            & "until that has been corrected."
+        End
+    End If
+Next i
+
+For i = 1 To m
+    For j = 1 To m
+        If R(i, j) > 1 Or R(i, j) < -1 Then
+            MsgBox "At least one value in your correlation matrix is invalid. " _
+            & "Please check your matrix and make any needed fixes before " _
+            & "running the analysis again."
+        ElseIf Not (IsNumeric(R(i, j))) Then
+            MsgBox "There is a non-numeric value in your correlation matrix. " _
+            & "Please check your matrix and make any needed fixes before " _
+            & "running the analysis again."
+        End If
+    Next j
+Next i
+End Sub
+Sub MakeRMatrix(InputRange As Range, R() As Double)
+Dim i As Integer, j As Integer, InRows As Integer, InCols As Integer
+Dim FirstVar As Range, SecondVar As Range
+
+InRows = InputRange.Rows.Count
+InCols = InputRange.Columns.Count
+    
+For i = 1 To InCols - 1
+    Set FirstVar = InputRange.Offset(0, i - 1).Resize(InRows, 1)
+    For j = i To InCols
+        Set SecondVar = InputRange.Offset(0, j - 1).Resize(InRows, 1)
+        R(i, j) = Application.WorksheetFunction.Correl(FirstVar, SecondVar)
+        R(j, i) = R(i, j)
+    Next j
+Next i
+R(InCols, InCols) = 1
+End Sub
+
+Sub GetSheetNameIncrement(SheetNameInc As Integer)
+Dim i As Integer
+SheetNameInc = 1
+For i = 1 To ActiveWorkbook.Sheets.Count
+    If Left(ActiveWorkbook.Sheets(i).Name, 20) = "Principal Components" Then
+        SheetNameInc = SheetNameInc + 1
+    End If
+Next i
+End Sub
+
+Sub CheckRawData(InputRange As Range)
+Dim i As Integer, j As Integer
+Dim InRows As Integer, InCols As Integer
+Dim DataProb As Boolean
+
+DataProb = False
+
+InRows = InputRange.Rows.Count
+InCols = InputRange.Columns.Count
+
+For i = 1 To InRows
+    For j = 1 To InCols
+        If Not (IsNumeric(InputRange(i, j))) Then
+            DataProb = True
+        End If
+    Next j
+Next i
+
+If DataProb Then
+     MsgBox "There is at least one non-numeric value in your input data. " _
+        & "Please check your data range and make any needed fixes before " _
+        & "running the analysis again."
+    End
+End If
+
+End Sub
+
+Sub ChangeDataLabels()
+Dim i As Integer
+
+ActiveSheet.ChartObjects(1).Activate
+ActiveChart.ChartArea.Select
+ActiveChart.ApplyDataLabels AutoText:=True, LegendKey:=False, _
+    HasLeaderLines:=False, ShowSeriesName:=False, ShowCategoryName:=True, _
+    ShowValue:=False, ShowPercentage:=False, ShowBubbleSize:=False
+
+For i = 1 To 50
+    ActiveChart.SeriesCollection(1).Points(i).DataLabel.Select
+    Selection.Characters.Text = ActiveSheet.Cells(i + 1, 1)
+Next i
+
+End Sub
+
+Sub ShowUserForm(InputRangeAddress As String, CorrelData As Boolean, ObsCount As Integer, _
+    LabelsInFirstRow As Boolean, VariMax As Boolean, n As Integer)
+    
+Dim DataProblem As Boolean, ChoiceProblem As Boolean, RotateProblem As Boolean, _
+    RetainProblem As Boolean
+Dim TestRange As Range
+
+DataProblem = True
+ChoiceProblem = True
+RotateProblem = True
+RetainProblem = True
+
+With ExtractPrinComp
+    .MultiPage1.Value = 0
+    .CorrData = False
+    .RawData = False
+    .LabelsBox = False
+    .RefEdit1 = ""
+    .RefEdit1.SetFocus
+    .RecordIDRange = ""
+    .CountBox = ""
+    .CountBox.Enabled = False
+    .Label4.Enabled = False
+    .VariButton = False
+    .QuartiButton = False
+    .NFactors = ""
+    Do While DataProblem Or ChoiceProblem Or RotateProblem Or RetainProblem
+        .Show
+        If .RefEdit1.Text = "" Then
+            MsgBox "Please enter a worksheet address for your data."
+        Else
+            DataProblem = False
+        End If
+        If Not .CorrData And Not .RawData Then
+            MsgBox "Please select either Correlation Matrix or Raw Data."
+        ElseIf .CorrData Then
+            ChoiceProblem = False
+        ElseIf .RawData Then
+            ChoiceProblem = False
+        End If
+        If .CorrData And (.CountBox = "") Then
+            MsgBox "If you are supplying a correlation matrix, please " _
+                 & "provide the number of observations it is based on."
+            ChoiceProblem = True
+        End If
+        If Not .VariButton And Not .QuartiButton Then
+            MsgBox "Please select either Varimax or Quartimax."
+        ElseIf .VariButton Then
+            RotateProblem = False
+        ElseIf .QuartiButton Then
+            RotateProblem = False
+        End If
+        
+        If ExtractPrinComp.NFactors = "" Then
+            MsgBox "Please enter the number of factors to retain for rotation."
+        Else
+            Set TestRange = Range(.RefEdit1.Value)
+            If ExtractPrinComp.NFactors <= TestRange.Columns.Count Then
+                RetainProblem = False
+            Else
+                MsgBox "Please enter no more factors to retain than you have variables."
+            End If
+        End If
+    Loop
+    
+    InputRangeAddress = .RefEdit1.Text
+    If .CorrData Then
+        CorrelData = True
+    Else
+        CorrelData = False
+    End If
+    If CorrelData Then
+        ObsCount = .CountBox.Value
+    End If
+    LabelsInFirstRow = .LabelsBox
+    If .VariButton Then
+        VariMax = True
+    Else
+        VariMax = False
+    End If
+
+    n = ExtractPrinComp.NFactors
+End With
+
+End Sub
+
+Sub PickUpData(InputRangeAddress As String, InputRange As Range, m As Integer, _
+    VarLabels() As String, LabelsInFirstRow As Boolean, ObsCount As Integer, _
+    CorrelData As Boolean, RecordIDs() As String, HaveIDs As Boolean)
+
+Dim InRows As Integer, i As Integer, IDRange As Range
+
+Set InputRange = Range(InputRangeAddress)
+m = InputRange.Columns.Count
+ReDim VarLabels(m)
+
+If LabelsInFirstRow Then
+    For i = 1 To m
+        VarLabels(i) = InputRange(1, i)
+    Next i
+    InRows = InputRange.Rows.Count - 1
+    Set InputRange = InputRange.Offset(1, 0).Resize(InRows, m)
+Else
+    For i = 1 To m
+        VarLabels(i) = "Variable " & i
+    Next i
+End If
+
+If Not CorrelData Then
+    ObsCount = InputRange.Rows.Count
+
+    If ExtractPrinComp.RecordIDRange <> "" Then
+        HaveIDs = True
+        Set IDRange = Range(ExtractPrinComp.RecordIDRange)
+        ReDim RecordIDs(ObsCount)
+        For i = 1 To ObsCount
+            RecordIDs(i) = IDRange.Offset(i - 1, 0).Resize(1, 1)
+        Next i
+    Else
+        HaveIDs = False
+    End If
+    
+End If
+End Sub
+
+Sub RedimArrays(R() As Double, E() As Double, V() As Double, FactorCoeffs() As Double, _
+    FactorPattern() As Double, A() As Double, B() As Double, C() As Double, _
+    D() As Double, x() As Double, SMCs() As Double, RawDataMatrix() As Double, _
+    ZScoreMatrix() As Double, m As Integer, ObsCount As Integer)
+    
+ReDim R(m, m)
+ReDim E(m)
+ReDim V(m, m)
+ReDim FactorCoeffs(m, m)
+ReDim FactorPattern(m, m)
+ReDim A(m)
+ReDim B(m)
+ReDim C(m)
+ReDim D(m)
+ReDim x(m, m)
+ReDim SMCs(m)
+ReDim RawDataMatrix(ObsCount, m)
+ReDim ZScoreMatrix(ObsCount, m)
+
+End Sub
+
+Sub PopulateMatrices(CorrelData As Boolean, InputRange As Range, m As Integer, _
+    R() As Double, ObsCount As Integer, RawDataMatrix() As Double)
+    
+Dim i As Integer, j As Integer
+
+If CorrelData Then
+    CheckRMatrix InputRange, m
+    For i = 1 To m
+        For j = 1 To m
+            R(i, j) = InputRange(i, j)
+        Next j
+    Next i
+
+Else
+    CheckRawData InputRange
+    MakeRMatrix InputRange, R
+    For i = 1 To ObsCount
+        For j = 1 To m
+            RawDataMatrix(i, j) = InputRange(i, j)
+        Next j
+    Next i
+End If
+
+End Sub
