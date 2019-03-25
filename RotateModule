@@ -1,0 +1,198 @@
+Option Explicit
+Option Base 1
+
+Sub Rotate(A() As Double, VarLabels() As String, n As Integer, VariMax As Boolean)
+Dim RotationMethod As Byte
+Dim m As Integer
+Dim i As Integer, j As Integer, k As Integer, L As Integer
+Dim EP As Double, EM As Double, QN As Double, QD As Double
+
+Dim C() As Double
+
+Dim N1 As Integer, NR As Integer
+Dim I1 As Integer
+Dim AOne As Double, BOne As Double, COne As Double, DOne As Double
+Dim U As Double, V As Double
+Dim CS As Double, SN As Double, SP As Double, CP As Double
+Dim CS1 As Double, SN1 As Double
+
+m = UBound(A)
+
+n = 2
+EP = 0.00116
+
+ReDim C(m)
+
+If VariMax Then
+    RotationMethod = 0
+Else
+    RotationMethod = 1
+End If
+'0 for Varimax, 1 for Quartimax
+
+For j = 1 To m
+    C(j) = 0
+    For k = 1 To n
+        C(j) = C(j) + A(j, k) ^ 2
+    Next k
+    
+    C(j) = Sqr(C(j))
+    For k = 1 To n
+        A(j, k) = A(j, k) / C(j)
+    Next k
+    
+Next j
+N1 = n - 1
+14:
+NR = 0
+For i = 1 To N1
+    I1 = i + 1
+    For j = I1 To n
+        AOne = 0
+        BOne = 0
+        COne = 0
+        DOne = 0
+        For k = 1 To m
+            U = A(k, i) ^ 2 - A(k, j) ^ 2
+            V = A(k, i) * A(k, j) * 2
+            AOne = AOne + U
+            BOne = BOne + V
+            COne = COne + U ^ 2 - V ^ 2
+            DOne = DOne + U * V * 2
+        Next k
+
+        If RotationMethod <= 0 Then
+            GoTo 16
+        Else
+            GoTo 17
+        End If
+16:
+        EM = m
+        QN = DOne - 2 * AOne * BOne / EM
+        QD = COne - (AOne ^ 2 - BOne ^ 2) / EM
+        GoTo 18
+
+17:
+        QN = DOne
+        QD = COne
+18:
+        If (Abs(QN) + Abs(QD)) <= 0 Then
+            GoTo 20
+        Else
+            GoTo 19
+        End If
+19:
+        If (Abs(QN) - Abs(QD)) < 0 Then
+            GoTo 21
+        ElseIf (Abs(QN) - Abs(QD)) = 0 Then
+            GoTo 22
+        Else
+            GoTo 35
+        End If
+21:
+        EM = Abs(QN / QD)
+        If EM - EP < 0 Then
+            GoTo 25
+        Else
+            GoTo 24
+        End If
+24:
+        CS = Cos(Atn(EM))
+        SN = Sin(Atn(EM))
+        GoTo 26
+25:
+        If QD < 0 Then
+            GoTo 27
+        Else
+            GoTo 20
+        End If
+27:
+        SP = 0.70710678
+        CP = SP
+        GoTo 29
+35:
+        EM = Abs(QD / QN)
+        If (EM - EP) < 0 Then
+            GoTo 31
+        Else
+            GoTo 30
+        End If
+30:
+        SN = 1 / Sqr(1 + EM ^ 2)
+        CS = SN * EM
+        GoTo 26
+31:
+        CS = 0
+        SN = 1
+        GoTo 26
+22:
+        CS = 0.70710678
+        SN = CS
+26:
+        EM = Sqr((1 + CS) / 2)
+        CS1 = Sqr((1 + EM) / 2)
+        SN1 = SN / (4 * CS1 * EM)
+        If QD < 0 Then
+            GoTo 32
+        Else
+            GoTo 33
+        End If
+32:
+        CP = 0.70710678 * (CS1 + SN1)
+        SP = 0.70710678 * (CS1 - SN1)
+        GoTo 34
+33:
+        CP = CS1
+        SP = SN1
+34:
+        If QN < 0 Then
+            GoTo 28
+        Else
+            GoTo 29
+        End If
+28:
+        SP = -SP
+        GoTo 29
+20:
+        NR = NR + 1
+        GoTo 23
+29:
+        For k = 1 To m
+            EM = A(k, i) * CP + A(k, j) * SP
+            A(k, j) = A(k, j) * CP - A(k, i) * SP
+36:
+            A(k, i) = EM
+        Next k
+23:
+    Next j
+Next i
+
+'23:
+If (NR - (n * N1) / 2) <> 0 Then
+    GoTo 14
+Else
+    GoTo 37
+End If
+
+37:
+For k = 1 To m
+    For L = 1 To n
+        A(k, L) = A(k, L) * C(k)
+    Next L
+Next k
+    
+Sheets.Add
+ActiveSheet.Name = "Rotated Loadings"
+For k = 1 To n
+    ActiveSheet.Cells(1, k + 1) = "Factor " & k
+Next k
+For j = 1 To m
+    ActiveSheet.Cells(j + 1, 1) = VarLabels(j)
+    For k = 1 To n
+        ActiveSheet.Cells(j + 1, k + 1) = A(j, k)
+    Next k
+Next j
+
+End Sub
+
+
