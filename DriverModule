@@ -1,0 +1,90 @@
+Option Base 1
+Option Explicit
+
+Sub Driver()
+Dim R() As Double
+Dim E() As Double
+Dim V() As Double
+Dim A() As Double
+Dim B() As Double
+Dim C() As Double
+Dim D() As Double
+Dim x() As Double
+Dim FactorCoeffs() As Double
+Dim RotatedCoeffs() As Double
+Dim FactorPattern() As Double
+Dim RawDataMatrix() As Double
+Dim ZScoreMatrix() As Double
+Dim SMCs() As Double
+Dim Det As Double, CHISQ As Double, NDF As Integer
+
+Dim i As Integer, j As Integer, m As Integer, k As Integer, RowNum As Integer
+Dim n As Integer
+Dim VarLabels() As String
+Dim RecordIDs() As String
+Dim InputRangeAddress As String
+Dim LabelsInFirstRow As Boolean
+Dim HaveIDs As Boolean
+Dim CorrelData As Boolean
+Dim ObsCount As Integer
+Dim VariMax As Boolean
+
+Dim InputRange As Range
+Dim SheetNameInc As Integer
+Dim TempInverse As Variant
+Dim Rinverse() As Double
+
+ShowUserForm InputRangeAddress, CorrelData, ObsCount, LabelsInFirstRow, VariMax, n
+PickUpData InputRangeAddress, InputRange, m, VarLabels(), LabelsInFirstRow, ObsCount, _
+    CorrelData, RecordIDs(), HaveIDs
+RedimArrays R, E, V, FactorCoeffs, FactorPattern, A, B, C, D, x, SMCs, _
+    RawDataMatrix, ZScoreMatrix, m, ObsCount
+
+PopulateMatrices CorrelData, InputRange, m, R(), ObsCount, RawDataMatrix()
+
+ExtractComponents R(), m, E(), V()
+
+Sheets.Add
+
+GetFactorCoeffs E, V, m, FactorCoeffs
+GetFactorPatterns E, V, m, FactorPattern
+Det = Application.WorksheetFunction.MDeterm(R)
+GetBartlett Det, ObsCount, m, CHISQ, NDF
+GetSheetNameIncrement SheetNameInc
+
+If SheetNameInc = 1 Then
+    ActiveSheet.Name = "Principal Components"
+Else
+    ActiveSheet.Name = "Principal Components (" & SheetNameInc & ")"
+End If
+    
+RowNum = 1
+
+WriteRMatrix RowNum, VarLabels(), R(), m
+WriteRInverse RowNum, Rinverse(), VarLabels(), R(), SMCs(), m
+WriteBartlett RowNum, Det, CHISQ, NDF
+WriteEigens RowNum, m, E(), VarLabels(), V()
+WriteUnrotatedCoeffs RowNum, VarLabels(), FactorCoeffs(), m
+WriteFactorStructure RowNum, m, VarLabels(), FactorPattern()
+WriteCommunalities RowNum, VarLabels(), FactorPattern(), SMCs(), m
+
+If Not CorrelData Then
+    WriteFactorScores RowNum, InputRange, ZScoreMatrix(), FactorCoeffs(), ObsCount, m
+End If
+
+With ActiveSheet
+    .Columns.EntireColumn.AutoFit
+    .Cells(1, 1).Select
+End With
+
+Rotate FactorPattern, VarLabels, n, VariMax
+Coeff Rinverse, FactorPattern, VarLabels, ObsCount, InputRange, m, n, RotatedCoeffs
+If Not CorrelData Then
+    Fscore RotatedCoeffs(), ObsCount, InputRange, n, m, RecordIDs(), HaveIDs
+End If
+End Sub
+
+
+
+
+
